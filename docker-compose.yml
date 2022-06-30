@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./src
+    command: |
+      bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000'
+    volumes:
+      - ./src/:/usr/src/app/
+    ports:
+      - 8002:8000
+    environment:
+      - DATABASE_URL=postgresql://hello_fastapi:hello_fastapi@db/hello_fastapi_dev
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_URL=172.21.0.3:9000
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=hello_fastapi
+      - POSTGRES_PASSWORD=hello_fastapi
+      - POSTGRES_DB=hello_fastapi_dev
+  minio:
+    image: minio/minio
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./minio/data:/data
+      - ./minio/config:/root/.minio
+    command: server --address 0.0.0.0:9000 --console-address ":9001" /data
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+        interval: 30s
+        timeout: 20s
+        retries: 3
+
+volumes:
+  postgres_data:

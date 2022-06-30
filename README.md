@@ -1,1 +1,2 @@
-# gr_a_test
+### Запуск проекта
+docker-compose up -d --build
